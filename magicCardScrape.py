@@ -34,6 +34,7 @@ CNpTaM = []
 soidata = []
 alphadata = []
 
+
 def getSetLinks(url):
      page = urllib2.urlopen(url + "/sitemap.html")
      soup = BeautifulSoup(page, "lxml")
@@ -44,22 +45,26 @@ def getSetLinks(url):
                SLList.append(link.get("href"))
      print("List of Links Complete")
 
+
 def getReleaseDates():
      with open('releasedates.csv', 'rb') as f:
           for row in csv.DictReader(f, delimiter='\t'):
                RDDict[str(row["Set"]).rstrip()] = str(row['Released']).rstrip()
-               
+
+
 def createCardCSV(prefix):
      with open('cards.csv', 'w') as outfile:
-          headers = ['Card name','Type','Mana','Rarity','Artist','Edition','Release']
-          writer = csv.writer(outfile, delimiter="\t", quotechar='"', quoting=csv.QUOTE_ALL)
+          headers = [
+               'Card name','Type','Mana','Rarity','Artist','Edition','Release']
+          writer = csv.writer(
+               outfile, delimiter="\t", quotechar='"', quoting=csv.QUOTE_ALL)
           writer.writerow(headers)
-          
+
           getReleaseDates()
-          
+
           for suffix in SLList:
                url = prefix + suffix
-               
+
                page = urllib2.urlopen(url)
                lines = page.readlines()
                for i in xrange(len(lines)):
@@ -67,38 +72,51 @@ def createCardCSV(prefix):
                          m = i
                          break
                     else: m = -1
-               #Needed to deal with the special 1 card sets which do not have the number of cards in the HTML
+               # Needed to deal with the special 1 card sets which do not have
+               # the number of cards in the HTML
                if m!= -1:
                     searchObj = re.findall(r"\d+", lines[m])
                else: searchObj = [1,1]
-          
+
                for i in xrange(len(lines)):
                     if lines[i].find("Card name") > 0:
                          n = i
                          break
-          
+
                for i in xrange(int(searchObj[1])):
                     lnum = n+11*(i+1)
-                    name = re.sub('\n','',(re.sub('    ','',(re.sub('<[^<]+?>','',str(lines[lnum]))))))
-                    type = re.sub('—','-',(re.sub('\n','',(re.sub('    ','',(re.sub('<[^<]+?>', '', str(lines[lnum+1]))))))))
-                    mana = re.sub('\n','',(re.sub('    ','',(re.sub('<[^<]+?>', '', str(lines[lnum+2]))))))
-                    rarity = re.sub('\n','',(re.sub('    ','',(re.sub('<[^<]+?>', '', str(lines[lnum+3]))))))
-                    artist = re.sub('\n','',(re.sub('    ','',(re.sub('<[^<]+?>', '', str(lines[lnum+4]))))))
-                    edition = re.sub('\n','',(re.sub('     ','',(re.sub('<[^<]+?>', '', str(lines[lnum+5]))))))
+                    name = re.sub('\n','',(re.sub('    ','',(re.sub(
+                         '<[^<]+?>','',str(lines[lnum]))))))
+                    type = re.sub('—','-',(re.sub('\n','',(re.sub('    ','',(
+                         re.sub('<[^<]+?>', '', str(lines[lnum+1]))))))))
+                    mana = re.sub('\n','',(re.sub('    ','',(re.sub(
+                         '<[^<]+?>', '', str(lines[lnum+2]))))))
+                    rarity = re.sub('\n','',(re.sub('    ','',(re.sub(
+                         '<[^<]+?>', '', str(lines[lnum+3]))))))
+                    artist = re.sub('\n','',(re.sub('    ','',(re.sub(
+                         '<[^<]+?>', '', str(lines[lnum+4]))))))
+                    edition = re.sub('\n','',(re.sub('     ','',(re.sub(
+                         '<[^<]+?>', '', str(lines[lnum+5]))))))
                     release = ""
                     if edition in RDDict:
                          release = RDDict[edition]
-                    writer.writerow((name,type,mana,rarity,artist,edition,release)) 
+                    writer.writerow(
+                         (name, type, mana, rarity, artist, edition, release))
+
 
 def getDeckLinks(url):
      with open('decks.csv', 'w') as outfile:
-          headers = ['Deck','Finish','Player','Event','Format','Date','Location','URL']
-          writer = csv.writer(outfile, delimiter="\t", quotechar='"', quoting=csv.QUOTE_ALL)
+          headers = [
+               'Deck', 'Finish', 'Player', 'Event', 'Format', 'Date',
+               'Location', 'URL']
+          writer = csv.writer(
+               outfile, delimiter="\t", quotechar='"', quoting=csv.QUOTE_ALL)
           writer.writerow(headers)
-          url = url
+          # url = url
           tcount = 0
           for i in xrange(169):
-               req = urllib2.Request(url, headers={'User-Agent' : "Magic Browser"}) 
+               req = urllib2.Request(
+                    url, headers={'User-Agent' : "Magic Browser"})
                con = urllib2.urlopen( req )
                soup = BeautifulSoup(con, "lxml")
                count = 0
@@ -106,23 +124,36 @@ def getDeckLinks(url):
                tcount += 1
                durl = []
                dnum = 0
+               starcity_url = (
+                    "http://sales.starcitygames.com//deckdatabase/"
+                    "displaydeck.php?DeckID=")
                for link in soup.find_all("a"):
-                    if str(link.get("href")).startswith("http://sales.starcitygames.com//deckdatabase/displaydeck.php?DeckID="):
+                    if str(link.get("href")).startswith(starcity_url):
                          durl.append(link.get("href"))
-               for row in soup.find_all('td',attrs={'class' :["deckdbbody" , "deckdbbody2"]}):
+               for row in soup.find_all(
+                         'td',attrs={'class' :["deckdbbody" , "deckdbbody2"]}):
                     count +=1
                     t = row.text.encode('utf-8').strip()
                     deckinfo.append(t)
                     if count == 7:
-                         deckinfo[6] = re.sub('[^\w]', ' ', deckinfo[6]).strip()
+                         deckinfo[6] = (
+                              re.sub('[^\w]', ' ', deckinfo[6]).strip()
+                         )
                          deckinfo.append(durl[dnum])
                          writer.writerow(deckinfo)
                          dnum += 1
                          count = 0
                          deckinfo= []
                print tcount
-               url = "http://sales.starcitygames.com//deckdatabase/deckshow.php?&t[C1]=3&start_date=02/21/2004&end_date=05/15/2016&start=1&finish=8&order_1=date%20desc&order_2=finish&start_num=25&start_num=" + str(tcount*25) + "&limit=25"
+               url = (
+                    "http://sales.starcitygames.com//deckdatabase/"
+                    "deckshow.php?&t[C1]=3&start_date=02/21/2004"
+                    "&end_date=05/15/2016&start=1&finish=8&order_1=date"
+                    "%20desc&order_2=finish&start_num=25&start_num={}"
+                    "&limit=25".format(str(tcount*25))
+               )
      
+
 def pictures():
      
      year =  []
@@ -133,7 +164,6 @@ def pictures():
           year.append(int(ds[0]))
           month.append(int(ds[1]))
           day.append(int(ds[2]))
-          
      
      plt.hist(year)
      plt.title("Number of Legacy Events by Year")
@@ -141,7 +171,7 @@ def pictures():
      plt.xlabel("Year")
      plt.ylabel("Number of Events")
      plt.show()
-     
+
      plt.hist(month)
      plt.xlim([0,13])
      plt.title("Histogram for Legacy Events by Month")
@@ -149,12 +179,10 @@ def pictures():
      plt.ylabel("Number of Events")
      plt.show()
 
-     
-     
      map = Basemap(resolution='l',projection='merc')
      map.drawcoastlines()
      map.drawcountries()
-     
+
      eventLocals = Counter()
      for city in cities:
           if (city == "") or (city == 'Magic Online'):
@@ -163,10 +191,12 @@ def pictures():
           else:
                eventLocals[city] += 1
      print len(eventLocals)
-     
+
      for cname,count in eventLocals.items():
+          """
+          http://stackoverflow.com/questions/27914648/geopy-catch-timeout-error
+          """
           geolocator = Nominatim()
-          #http://stackoverflow.com/questions/27914648/geopy-catch-timeout-error
           try:
                location = geolocator.geocode(cname, timeout=10)
                if location:
@@ -176,18 +206,19 @@ def pictures():
                     map.plot(x,y, 'ro', markersize=count, label = cname)
 
           except GeocoderTimedOut as e:
-               print("Error: geocode failed on input %s with message %s"%(location, e.message))
-          
+               print(
+                    "Error: geocode failed on input {} with message {}".format(
+                         location, e.message))
+
      plt.title("Map of All Cities That Have Held Legacy Tournaments")
      plt.show()
-     
-     
+
      for name in deck:
           dnames[name] += 1
      for k,v in dnames.items():
           if v < 10:
                del dnames[k]
-     
+
      plt.bar(range(len(dnames)), dnames.values(), align='center')
      plt.xticks(range(len(dnames)), dnames.keys())
      locs, labels = plt.xticks()
@@ -196,8 +227,7 @@ def pictures():
      plt.title("Number of Top 8 Finishes by Archetype")
      plt.xlabel("Deck Name")
      plt.show()
-     
-     
+
      plt.bar(range(len(pnames)), pnames.values(), align= 'center')
      plt.xticks(range(len(pnames)), pnames.keys())
      locs, labels = plt.xticks()
@@ -206,9 +236,7 @@ def pictures():
      plt.title("Players with 5 or More Top 8 Finishes")
      plt.xlabel("Players Name")
      plt.show()
-     
-     
-     
+
      markers = ["x","o","+","*","p","D"]
      colors =["blue","black","red","yellow","green","orange"]
      c=0
@@ -222,7 +250,9 @@ def pictures():
                     x = datetime.datetime.strptime(day,'%Y-%m-%d').date()
                     pplotx.append(x)
                     pploty.append(pwins)
-          plt.plot(pplotx, pploty, label=player, color=colors[c], markersize=6, marker=markers[c])
+          plt.plot(
+               pplotx, pploty, label=player, color=colors[c], markersize=6,
+               marker=markers[c])
           c += 1
           pwins = 0
      plt.legend(loc=2,ncol=3,fontsize=8)
@@ -230,7 +260,8 @@ def pictures():
      plt.ylabel('Number of Wins to Date')
      plt.title("Top 6 Winning Players - Wins By Date")
      plt.show()
-          
+
+
 def getDataLists():
      with open('decks.csv', 'rb') as f:
           reader = csv.DictReader(f, delimiter='\t')
@@ -260,7 +291,8 @@ def getDataLists():
                del pnames[k]
           if v >= 15:
                topplayers.append(k)
-     
+
+
 def getCardlistsData():
      with open('cards.csv', 'rb') as f:
           for row in csv.DictReader(f, delimiter='\t'):
@@ -273,9 +305,14 @@ def getCardlistsData():
                release.append(row['Release'])
                CNpTaM.append((row['Card name'],row['Type'],row['Mana']))
                if row['Edition'] == "Limited Edition Alpha":
-                    alphadata.append((row['Card name'], row['Type'], row['Rarity'], row['Mana']))
+                    alphadata.append((
+                         row['Card name'], row['Type'], row['Rarity'],
+                         row['Mana']))
                if row['Edition'] == "Shadows over Innistrad":
-                    soidata.append((row['Card name'], row['Type'], row['Rarity'], row['Mana']))
+                    soidata.append((
+                         row['Card name'], row['Type'], row['Rarity'],
+                         row['Mana']))
+
 
 def cardWork():
      cardCount = Counter()
@@ -319,7 +356,8 @@ def cardWork():
      autopct='%.0f%%', startangle=90)
      plt.title("Percentage of Total Cards Printed in Each Color")
      plt.show()
-    
+
+
 def setCompWork():
      cardmana = []
      colorCounts = Counter()
@@ -385,14 +423,15 @@ def setCompWork():
                if mana.isdigit():
                     soicolorCounts["Colorless"] +=1
           
-     #http://matplotlib.org/examples/pylab_examples/subplots_demo.html
+     # http://matplotlib.org/examples/pylab_examples/subplots_demo.html
      f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
      f.suptitle("Comparision of Oldest Vs Newest Card Sets")
      ax1.set_title("Based on Card Type")
-     ax1.scatter(range(len(catype)), catype.values(), label = "Alpha")
+     ax1.scatter(range(len(catype)), catype.values(), label="Alpha")
      ax1.set_xticks(range(len(catype)), catype.keys())
      
-     ax1.scatter(range(len(soitype)), soitype.values(), color = "red", label = "SOI")
+     ax1.scatter(
+          range(len(soitype)), soitype.values(), color="red", label="SOI")
      ax1.set_xticks(range(len(soitype)), soitype.keys())
      ax1.legend(loc=2)
      labels = catype.keys()
@@ -400,10 +439,13 @@ def setCompWork():
      plt.setp(labels)
      
      ax2.set_title("Based on Card Color")
-     ax2.scatter(range(len(colorCounts)), colorCounts.values(), label = "Alpha")
+     ax2.scatter(
+          range(len(colorCounts)), colorCounts.values(), label="Alpha")
      ax2.set_xticks(range(len(colorCounts)), colorCounts.keys())
      
-     ax2.scatter(range(len(soicolorCounts)), soicolorCounts.values(), color = "red", label = "SOI")
+     ax2.scatter(
+          range(len(soicolorCounts)), soicolorCounts.values(), color="red",
+          label="SOI")
      ax2.set_xticks(range(len(soicolorCounts)), soicolorCounts.keys())
      ax2.legend(loc=2)
      labels = colorCounts.keys()
@@ -417,7 +459,12 @@ def main():
      cardsURL = "http://magiccards.info"
      getSetLinks(cardsURL)
      createCardCSV(cardsURL)
-     decksURL = "http://sales.starcitygames.com//deckdatabase/deckshow.php?&t[C1]=3&start_date=02/21/2004&end_date=05/15/2016&start=1&finish=8&order_1=date%20desc&order_2=finish&start_num=25&start_num=0&limit=25"
+     decksURL = (
+          "http://sales.starcitygames.com//deckdatabase/deckshow.php?&"
+          "t[C1]=3&start_date=02/21/2004&end_date=05/15/2016&start=1&"
+          "finish=8&order_1=date%20desc&order_2=finish&start_num=25&"
+          "start_num=0&limit=25"
+     )
      getDeckLinks(decksURL)
      getDataLists()
      pictures()
